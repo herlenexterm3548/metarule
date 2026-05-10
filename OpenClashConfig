@@ -1,0 +1,89 @@
+[custom]
+; ==========================================================
+; 根据 Clash Verge JS 脚本逻辑复刻的 OpenClash INI 规则
+; 特性：节点清洗 + Loyalsoldier 全局规则 + Xiaolin-007 媒体分流
+; ==========================================================
+
+enable_rule_generator=true
+overwrite_original_rules=true
+
+; ==========================================================
+; 节点清洗：对应 JS 中的 filter: "^(?!.*(官网|套餐|流量|异常|剩余)).*$"
+; ==========================================================
+exclude=官网|套餐|流量|异常|剩余
+
+; ==========================================================
+; 1) 规则集定义 (优先级自上而下)
+; ==========================================================
+
+; --- 顶部自定义直连/代理规则 ---
+ruleset=节点选择,[]DOMAIN-SUFFIX,googleapis.cn
+ruleset=节点选择,[]DOMAIN-SUFFIX,gstatic.com
+ruleset=节点选择,[]DOMAIN-SUFFIX,xn--ngstr-lra8j.com
+ruleset=节点选择,[]DOMAIN-SUFFIX,github.io
+ruleset=节点选择,[]DOMAIN,v2rayse.com
+
+; --- Loyalsoldier 基础规则集 ---
+ruleset=全局直连,clash-classic:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt
+ruleset=全局直连,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt
+ruleset=广告过滤,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt
+ruleset=微软服务,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt
+ruleset=苹果服务,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt
+
+; --- Xiaolin-007 流媒体与 AI 规则集 ---
+ruleset=YouTube,clash-classic:https://fastly.jsdelivr.net/gh/xiaolin-007/clash@main/rule/YouTube.txt
+ruleset=Netflix,clash-classic:https://fastly.jsdelivr.net/gh/xiaolin-007/clash@main/rule/Netflix.txt
+ruleset=动画疯,clash-classic:https://fastly.jsdelivr.net/gh/xiaolin-007/clash@main/rule/Bahamut.txt
+ruleset=Spotify,clash-classic:https://fastly.jsdelivr.net/gh/xiaolin-007/clash@main/rule/Spotify.txt
+ruleset=哔哩哔哩港澳台,clash-classic:https://fastly.jsdelivr.net/gh/xiaolin-007/clash@main/rule/BilibiliHMT.txt
+ruleset=AI,clash-classic:https://fastly.jsdelivr.net/gh/xiaolin-007/clash@main/rule/AI.txt
+ruleset=TikTok,clash-classic:https://fastly.jsdelivr.net/gh/xiaolin-007/clash@main/rule/TikTok.txt
+
+; --- Loyalsoldier 核心分流与 IP 规则集 ---
+ruleset=谷歌服务,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/google.txt
+ruleset=节点选择,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt
+ruleset=节点选择,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt
+ruleset=节点选择,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt
+ruleset=全局直连,clash-domain:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt
+ruleset=全局直连,clash-ipcidr:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt,no-resolve
+ruleset=全局直连,clash-ipcidr:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt,no-resolve
+ruleset=电报消息,clash-ipcidr:https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt,no-resolve
+
+; --- 系统级兜底规则 ---
+ruleset=全局直连,[]GEOSITE,CN
+ruleset=全局直连,[]GEOIP,LAN,no-resolve
+ruleset=全局直连,[]GEOIP,CN,no-resolve
+ruleset=漏网之鱼,[]FINAL
+
+
+; ==========================================================
+; 2) 策略组配置 (完美映射 JS 中的 Proxy-Groups)
+; ==========================================================
+
+; 基础万能组 (包含所有有效节点，由顶部 exclude 进行垃圾节点清洗)
+custom_proxy_group=节点选择`select`.*
+
+; 应用与服务组
+custom_proxy_group=谷歌服务`select`[]节点选择`[]全局直连
+custom_proxy_group=YouTube`select`[]节点选择`[]全局直连
+custom_proxy_group=Netflix`select`[]节点选择`[]全局直连
+custom_proxy_group=电报消息`select`[]节点选择`[]全局直连
+custom_proxy_group=AI`select`[]节点选择
+custom_proxy_group=TikTok`select`[]节点选择
+
+; 直连优先组
+custom_proxy_group=微软服务`select`[]全局直连`[]节点选择
+custom_proxy_group=苹果服务`select`[]节点选择`[]全局直连
+custom_proxy_group=哔哩哔哩港澳台`select`[]全局直连`[]节点选择
+
+; 特殊过滤组 (包含“节点选择”的嵌套，并利用正则提取港台节点)
+custom_proxy_group=动画疯`select`[]节点选择`(?i)台|tw|TW
+custom_proxy_group=Spotify`select`[]节点选择`[]全局直连
+
+; 拦截与系统直连组
+custom_proxy_group=广告过滤`select`[]REJECT`[]DIRECT
+custom_proxy_group=全局直连`select`[]DIRECT`[]节点选择
+custom_proxy_group=全局拦截`select`[]REJECT`[]DIRECT
+
+; 最终兜底
+custom_proxy_group=漏网之鱼`select`[]节点选择`[]全局直连
